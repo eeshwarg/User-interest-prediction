@@ -7,12 +7,14 @@ import cPickle
 from collections import defaultdict
 import os
 import math
+import shutil
 
 stop_words = set(stopwords.words('english'))
 vocabulary = []
-TF_IDF_FILE = 'tf_idf.txt'
-IDF_FILE = 'idf.txt'
-VOCABULARY_FILE = 'vocabulary.txt'
+DOC_PROPS = 'Document Scores'
+TF_IDF_FILE = DOC_PROPS+'/tf_idf.txt'
+IDF_FILE = DOC_PROPS+'/idf.txt'
+VOCABULARY_FILE = DOC_PROPS+'/vocabulary.txt'
 
 def pickleDataStructure(dict,file):
     with open(file,'wb') as f:
@@ -22,7 +24,7 @@ def pickleDataStructure(dict,file):
 # Get the term frequency of terms in a document
 def index_doc(input_dir,file,df):
     doc_terms = {}
-    tokenizer = RegexpTokenizer(r'\w+')
+    tokenizer = RegexpTokenizer(r'[a-zA-Z]{3,50}')
     with open(input_dir+file,'r') as f:
         for line in f:
             for word in tokenizer.tokenize(line.decode('utf8')):
@@ -36,7 +38,7 @@ def index_doc(input_dir,file,df):
                     else:
                         doc_terms[word] += 1
     f.close()
-    print "Indexed",file
+    # print "Indexed",file
     return doc_terms
 
 # Compute the tf_idf value of terms given the term frequencies and inverse docuement frequencies
@@ -53,27 +55,34 @@ def compute_tf_idf(tf_in_docs,idf):
         for word in t:
             tf_idf[doc][word] /= norm
 
-        print "computed tf-idf for", doc
+        # print "computed tf-idf for", doc
     return tf_idf
 
-def main():
-    input_dir = argv[1]
+def calc_and_store_tf_idf(input_dir):
+    # if os.path.exists(DOC_PROPS):
+    #     shutil.rmtree(DOC_PROPS)
+    # os.makedirs(DOC_PROPS)
 
     tf_in_docs = {}     # A dictionary of dictionaries that stores the term frequencies for all the documents in the collection
     df = defaultdict(int)       # A dictionary that stores the number of documents each term in the vocabulary appears in
     count = 0
+    print "Indexing docuement collection..."
     for file in os.listdir(input_dir):
         if file.endswith(".txt"):
             tf_in_docs[file] = index_doc(input_dir,file,df)
             count += 1
-            print count
+            # print count
+
+    print "Indexed."
 
     no_of_docs = len(tf_in_docs)
     idf = {}
     for term in df:
         idf[term] = math.log(no_of_docs/df[term])
 
+    print "Computing tf_idf..."
     tf_idf = compute_tf_idf(tf_in_docs,idf)
+    print "Computed."
 
     vocabulary.sort()
 
